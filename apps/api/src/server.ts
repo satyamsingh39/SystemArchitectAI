@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import { Pool } from "pg";
 import { SYSTEM_NAME, HealthCheckResponse } from "@systemarchitect/shared";
+import { registerPersistenceRoutes } from "./routes/persistence";
 
 const fastify = Fastify({ logger: true });
 
@@ -19,6 +20,9 @@ fastify.get("/health", async (request, reply): Promise<HealthCheckResponse> => {
     return { status: "error" };
   }
 });
+
++// Register API routes for persistence
++registerPersistenceRoutes(fastify);
 
 const start = async () => {
   try {

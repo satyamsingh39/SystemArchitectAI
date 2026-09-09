@@ -18,4 +18,13 @@ const initialGraph: ArchitectureGraph = {
   },
 };
 
-export const architectureEngine = new ArchitectureEngine(initialGraph);
+// Export a mutable engine instance
+export let architectureEngine = new ArchitectureEngine(initialGraph);
+
+/**
+ * Reinitialize the ArchitectureEngine with a given graph.
+ * Used when loading a persisted version.
+ */
+export function reinitializeEngine(graph: ArchitectureGraph): void {
+  architectureEngine = new ArchitectureEngine(graph);
+}
