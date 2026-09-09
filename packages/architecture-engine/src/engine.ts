@@ -12,6 +12,8 @@ import {
   UpdateConnectionChange,
   TrafficFlow,
   SystemRequirements,
+  FunctionalRequirement,
+  SystemRequirementsSchema,
 } from '@systemarchitect/architecture-schema';
 import { validateArchitectureGraph } from '@systemarchitect/architecture-schema';
 import {
@@ -71,7 +73,6 @@ export class ArchitectureEngine {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       return { success: false, error: new EngineError(EngineErrorCode.InvalidOperation, msg) };
-
     }
     const change: RemoveComponentChange = { type: 'removeComponent', componentId };
     return this.commit(newGraph, change);
@@ -87,7 +88,6 @@ export class ArchitectureEngine {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       return { success: false, error: new EngineError(EngineErrorCode.InvalidOperation, msg) };
-
     }
     const change: UpdateComponentChange = { type: 'updateComponent', componentId, updates };
     return this.commit(newGraph, change);
@@ -143,6 +143,115 @@ export class ArchitectureEngine {
     }
     const change: UpdateConnectionChange = { type: 'updateConnection', connectionId, updates };
     return this.commit(newGraph, change);
+  }
+
+  // --------------------- Requirements Mutations ---------------------
+
+  updateRequirements(requirements: SystemRequirements): EngineResult<{ graph: ArchitectureGraph }> {
+    const parseResult = SystemRequirementsSchema.safeParse(requirements);
+    if (!parseResult.success) {
+      const errors = parseResult.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+      return {
+        success: false,
+        error: new EngineError(EngineErrorCode.ValidationFailure, 'Invalid system requirements', undefined, errors),
+      };
+    }
+
+    const newGraph = structuredClone(this.graph);
+    newGraph.requirements = parseResult.data;
+    return this.commitDirect(newGraph);
+  }
+
+  addFunctionalRequirement(requirement: FunctionalRequirement): EngineResult<{ graph: ArchitectureGraph }> {
+    const currentRequirements: SystemRequirements = this.graph.requirements ?? {
+      functional: [],
+      scale: {},
+      performance: {},
+      constraints: [],
+    };
+
+    if (currentRequirements.functional.some((req) => req.id === requirement.id)) {
+      return {
+        success: false,
+        error: new EngineError(
+          EngineErrorCode.InvalidOperation,
+          `Functional requirement with id ${requirement.id} already exists`,
+          requirement.id
+        ),
+      };
+    }
+
+    const updatedRequirements: SystemRequirements = {
+      ...currentRequirements,
+      functional: [...currentRequirements.functional, requirement],
+    };
+
+    return this.updateRequirements(updatedRequirements);
+  }
+
+  removeFunctionalRequirement(id: string): EngineResult<{ graph: ArchitectureGraph }> {
+    const currentRequirements = this.graph.requirements;
+    if (!currentRequirements || !currentRequirements.functional.some((req) => req.id === id)) {
+      return {
+        success: false,
+        error: new EngineError(
+          EngineErrorCode.InvalidOperation,
+          `Functional requirement with id ${id} not found`,
+          id
+        ),
+      };
+    }
+
+    const updatedRequirements: SystemRequirements = {
+      ...currentRequirements,
+      functional: currentRequirements.functional.filter((req) => req.id !== id),
+    };
+
+    return this.updateRequirements(updatedRequirements);
+  }
+
+  addConstraint(constraint: string): EngineResult<{ graph: ArchitectureGraph }> {
+    const trimmed = constraint.trim();
+    if (!trimmed) {
+      return {
+        success: false,
+        error: new EngineError(EngineErrorCode.InvalidOperation, 'Constraint string cannot be empty'),
+      };
+    }
+
+    const currentRequirements: SystemRequirements = this.graph.requirements ?? {
+      functional: [],
+      scale: {},
+      performance: {},
+      constraints: [],
+    };
+
+    const updatedRequirements: SystemRequirements = {
+      ...currentRequirements,
+      constraints: [...(currentRequirements.constraints ?? []), trimmed],
+    };
+
+    return this.updateRequirements(updatedRequirements);
+  }
+
+  removeConstraint(index: number): EngineResult<{ graph: ArchitectureGraph }> {
+    const currentRequirements = this.graph.requirements;
+    const currentConstraints = currentRequirements?.constraints ?? [];
+
+    if (index < 0 || index >= currentConstraints.length) {
+      return {
+        success: false,
+        error: new EngineError(EngineErrorCode.InvalidOperation, `Invalid constraint index ${index}`),
+      };
+    }
+
+    const updatedConstraints = currentConstraints.filter((_, i) => i !== index);
+    const updatedRequirements: SystemRequirements = {
+      ...currentRequirements!,
+      constraints: updatedConstraints,
+    };
+
+    return this.updateRequirements(updatedRequirements);
   }
 
   // --------------------- Queries ---------------------
@@ -264,7 +373,21 @@ export class ArchitectureEngine {
     }
   }
 
-  // --------------------- Internal Helper ---------------------
+  // --------------------- Internal Helpers ---------------------
+
+  private commitDirect(newGraph: ArchitectureGraph): EngineResult<{ graph: ArchitectureGraph }> {
+    const validation = validateArchitectureGraph(newGraph);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: new EngineError(EngineErrorCode.ValidationFailure, 'Graph validation failed', undefined, validation.errors),
+      };
+    }
+    const currentVersion = parseInt(this.graph.version, 10) || 0;
+    newGraph.version = (currentVersion + 1).toString();
+    this.graph = newGraph;
+    return { success: true, data: { graph: this.graph } };
+  }
 
   private commit<T>(newGraph: ArchitectureGraph, change: ArchitectureChange): EngineResult<T> {
     const validation = validateArchitectureGraph(newGraph);

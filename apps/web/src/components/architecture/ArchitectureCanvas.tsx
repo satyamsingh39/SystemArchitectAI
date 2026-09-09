@@ -19,6 +19,8 @@ import { graphToFlow } from '../../adapters/reactFlowAdapter';
 import type { ArchitectureConnection } from '@systemarchitect/architecture-schema';
 import { ComponentCreationDialog } from './ComponentCreationDialog';
 import { ComponentInspector } from './ComponentInspector';
+import { RequirementsPanel } from './RequirementsPanel';
+import { EvaluationPanel } from './EvaluationPanel';
 import { ErrorBanner } from './ErrorBanner';
 
 export const ArchitectureCanvas: React.FC = () => {
@@ -34,6 +36,8 @@ export const ArchitectureCanvas: React.FC = () => {
   } = useArchitectureStore();
 
   const [showCreationDialog, setShowCreationDialog] = useState(false);
+  const [showRequirementsPanel, setShowRequirementsPanel] = useState(false);
+  const [showEvaluationPanel, setShowEvaluationPanel] = useState(false);
 
   const { nodes, edges } = graphToFlow(graph);
 
@@ -123,12 +127,17 @@ export const ArchitectureCanvas: React.FC = () => {
       <ErrorBanner />
       <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
         <div style={{ flex: 1, height: '100%', position: 'relative' }}>
-          <button
-            onClick={() => setShowCreationDialog(true)}
-            style={{ position: 'absolute', top: 10, left: 10, zIndex: 10 }}
-          >
-            Add Component
-          </button>
+          <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: 'flex', gap: '8px' }}>
+            <button onClick={() => setShowCreationDialog(true)}>
+              Add Component
+            </button>
+            <button onClick={() => { setShowRequirementsPanel((prev) => !prev); setShowEvaluationPanel(false); }}>
+              {showRequirementsPanel ? 'Hide Requirements' : 'System Requirements'}
+            </button>
+            <button onClick={() => { setShowEvaluationPanel((prev) => !prev); setShowRequirementsPanel(false); }}>
+              {showEvaluationPanel ? 'Hide Evaluation' : 'Evaluate Architecture'}
+            </button>
+          </div>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -147,6 +156,8 @@ export const ArchitectureCanvas: React.FC = () => {
           </ReactFlow>
         </div>
         {selectedComponentId && <ComponentInspector />}
+        {showRequirementsPanel && <RequirementsPanel onClose={() => setShowRequirementsPanel(false)} />}
+        {showEvaluationPanel && <EvaluationPanel onClose={() => setShowEvaluationPanel(false)} />}
       </div>
       {showCreationDialog && (
         <ComponentCreationDialog onClose={() => setShowCreationDialog(false)} />

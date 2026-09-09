@@ -1,7 +1,13 @@
 // src/store/architectureStore.ts
 import { create } from 'zustand';
 import { architectureEngine } from '../integrations/architecture-engine';
-import type { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph } from '@systemarchitect/architecture-schema';
+import type {
+  ArchitectureComponent,
+  ArchitectureConnection,
+  ArchitectureGraph,
+  SystemRequirements,
+  FunctionalRequirement,
+} from '@systemarchitect/architecture-schema';
 
 export interface ArchitectureStore {
   graph: ArchitectureGraph;
@@ -20,6 +26,12 @@ export interface ArchitectureStore {
   addConnection: (connection: ArchitectureConnection) => void;
   updateConnection: (connectionId: string, updates: Partial<ArchitectureConnection>) => void;
   removeConnection: (connectionId: string) => void;
+
+  updateRequirements: (requirements: SystemRequirements) => void;
+  addFunctionalRequirement: (requirement: FunctionalRequirement) => void;
+  removeFunctionalRequirement: (id: string) => void;
+  addConstraint: (constraint: string) => void;
+  removeConstraint: (index: number) => void;
 }
 
 export const useArchitectureStore = create<ArchitectureStore>((set) => ({
@@ -81,6 +93,51 @@ export const useArchitectureStore = create<ArchitectureStore>((set) => ({
     const result = architectureEngine.removeConnection(connectionId);
     if (result.success) {
       set({ graph: result.data.graph, selectedConnectionId: undefined, error: undefined });
+    } else {
+      set({ error: result.error.message });
+    }
+  },
+
+  updateRequirements: (requirements) => {
+    const result = architectureEngine.updateRequirements(requirements);
+    if (result.success) {
+      set({ graph: result.data.graph, error: undefined });
+    } else {
+      set({ error: result.error.message });
+    }
+  },
+
+  addFunctionalRequirement: (requirement) => {
+    const result = architectureEngine.addFunctionalRequirement(requirement);
+    if (result.success) {
+      set({ graph: result.data.graph, error: undefined });
+    } else {
+      set({ error: result.error.message });
+    }
+  },
+
+  removeFunctionalRequirement: (id) => {
+    const result = architectureEngine.removeFunctionalRequirement(id);
+    if (result.success) {
+      set({ graph: result.data.graph, error: undefined });
+    } else {
+      set({ error: result.error.message });
+    }
+  },
+
+  addConstraint: (constraint) => {
+    const result = architectureEngine.addConstraint(constraint);
+    if (result.success) {
+      set({ graph: result.data.graph, error: undefined });
+    } else {
+      set({ error: result.error.message });
+    }
+  },
+
+  removeConstraint: (index) => {
+    const result = architectureEngine.removeConstraint(index);
+    if (result.success) {
+      set({ graph: result.data.graph, error: undefined });
     } else {
       set({ error: result.error.message });
     }

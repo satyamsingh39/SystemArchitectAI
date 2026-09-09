@@ -54,6 +54,9 @@ importers:
       '@systemarchitect/architecture-schema':
         specifier: workspace:*
         version: link:../../packages/architecture-schema
+      '@systemarchitect/evaluation-engine':
+        specifier: workspace:*
+        version: link:../../packages/evaluation-engine
       '@systemarchitect/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -116,6 +119,19 @@ importers:
       zod:
         specifier: ^3.22.4
         version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.2.2
+        version: 5.9.3
+      vitest:
+        specifier: ^1.4.0
+        version: 1.6.1(@types/node@20.19.43)
+
+  packages/evaluation-engine:
+    dependencies:
+      '@systemarchitect/architecture-schema':
+        specifier: '*'
+        version: link:../architecture-schema
     devDependencies:
       typescript:
         specifier: ^5.2.2

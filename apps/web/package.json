@@ -19,7 +19,8 @@
     "@tanstack/react-query": "^5.17.19",
     "@systemarchitect/shared": "workspace:*",
     "@systemarchitect/architecture-schema": "workspace:*",
-    "@systemarchitect/architecture-engine": "workspace:*"
+    "@systemarchitect/architecture-engine": "workspace:*",
+    "@systemarchitect/evaluation-engine": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { graphToFlow, componentToNode, connectionToEdge } from '../adapters/reactFlowAdapter';
 import { useArchitectureStore } from '../store/architectureStore';
 import { architectureEngine } from '../integrations/architecture-engine';
-import type { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph } from '@systemarchitect/architecture-schema';
+import type { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph, SystemRequirements } from '@systemarchitect/architecture-schema';
 
 function createTestGraph(): ArchitectureGraph {
   return {
@@ -180,6 +180,40 @@ describe('React Flow Adapter & Zustand Store Integration', () => {
       const updatedComp = finalState.graph.components.find((c) => c.id === 'c1');
       expect(updatedComp?.position).toEqual({ x: 450, y: 300 });
       expect(Number(finalState.graph.version)).toBe(Number(initialVersion) + 1);
+    });
+
+    it('handles store requirement actions cleanly', () => {
+      const store = useArchitectureStore.getState();
+
+      const newReqs: SystemRequirements = {
+        functional: [{ id: 'fr-store', description: 'Log in', priority: 'must' }],
+        scale: { requestsPerSecond: 1000 },
+        performance: { p95LatencyMs: 150 },
+        availability: 99.99,
+        consistency: 'eventual',
+        constraints: ['Must run on Linux'],
+      };
+
+      store.updateRequirements(newReqs);
+
+      const stateAfterUpdate = useArchitectureStore.getState();
+      expect(stateAfterUpdate.graph.requirements).toEqual(newReqs);
+      expect(stateAfterUpdate.error).toBeUndefined();
+
+      // Add functional requirement via store
+      store.addFunctionalRequirement({ id: 'fr-2', description: 'Log out', priority: 'should' });
+      expect(useArchitectureStore.getState().graph.requirements?.functional).toHaveLength(2);
+
+      // Remove functional requirement via store
+      store.removeFunctionalRequirement('fr-store');
+      expect(useArchitectureStore.getState().graph.requirements?.functional).toHaveLength(1);
+
+      // Constraints via store
+      store.addConstraint('Zero downtime deployments');
+      expect(useArchitectureStore.getState().graph.requirements?.constraints).toContain('Zero downtime deployments');
+
+      store.removeConstraint(0); // Remove "Must run on Linux"
+      expect(useArchitectureStore.getState().graph.requirements?.constraints).toEqual(['Zero downtime deployments']);
     });
   });
 });
