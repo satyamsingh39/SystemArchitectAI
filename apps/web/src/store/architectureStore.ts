@@ -1,7 +1,7 @@
 // src/store/architectureStore.ts
 import { create } from 'zustand';
 import { architectureEngine } from '../integrations/architecture-engine';
-import { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph } from '@systemarchitect/architecture-schema';
+import type { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph } from '@systemarchitect/architecture-schema';
 
 export interface ArchitectureStore {
   graph: ArchitectureGraph;
@@ -11,6 +11,7 @@ export interface ArchitectureStore {
 
   selectComponent: (id?: string) => void;
   selectConnection: (id?: string) => void;
+  clearError: () => void;
 
   addComponent: (component: ArchitectureComponent) => void;
   updateComponent: (componentId: string, updates: Partial<ArchitectureComponent>) => void;
@@ -21,7 +22,7 @@ export interface ArchitectureStore {
   removeConnection: (connectionId: string) => void;
 }
 
-export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
+export const useArchitectureStore = create<ArchitectureStore>((set) => ({
   graph: architectureEngine.getGraph(),
   selectedComponentId: undefined,
   selectedConnectionId: undefined,
@@ -29,6 +30,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
 
   selectComponent: (id) => set({ selectedComponentId: id, selectedConnectionId: undefined, error: undefined }),
   selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: undefined, error: undefined }),
+  clearError: () => set({ error: undefined }),
 
   addComponent: (component) => {
     const result = architectureEngine.addComponent(component);

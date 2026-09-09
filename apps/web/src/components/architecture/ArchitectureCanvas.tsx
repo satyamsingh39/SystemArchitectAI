@@ -1,27 +1,30 @@
 // src/components/architecture/ArchitectureCanvas.tsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import ReactFlow, {
-  addEdge,
   Background,
   Controls,
+} from 'reactflow';
+import type {
   Edge,
   EdgeChange,
   OnConnect,
   Node,
   NodeChange,
-  applyNodeChanges,
-  applyEdgeChanges,
+  OnNodesChange,
+  NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useArchitectureStore } from '../../store/architectureStore';
-import { graphToFlow, componentToNode } from '../../adapters/reactFlowAdapter';
-import { ArchitectureConnection, ArchitectureComponent } from '@systemarchitect/architecture-schema';
+import { graphToFlow } from '../../adapters/reactFlowAdapter';
+import type { ArchitectureConnection } from '@systemarchitect/architecture-schema';
+import { ComponentCreationDialog } from './ComponentCreationDialog';
+import { ComponentInspector } from './ComponentInspector';
+import { ErrorBanner } from './ErrorBanner';
 
 export const ArchitectureCanvas: React.FC = () => {
   const {
     graph,
     selectedComponentId,
-    selectedConnectionId,
     selectComponent,
     selectConnection,
     addConnection,
@@ -30,37 +33,28 @@ export const ArchitectureCanvas: React.FC = () => {
     removeConnection,
   } = useArchitectureStore();
 
+  const [showCreationDialog, setShowCreationDialog] = useState(false);
+
   const { nodes, edges } = graphToFlow(graph);
 
-  const onNodesChange = useCallback(
+  const onNodesChange = useCallback<OnNodesChange>(
     (changes: NodeChange[]) => {
-      // Only handle position changes (drag stop). React Flow provides type "position".
-      changes.forEach((change) => {
-        if (change.type === 'position' && change.id) {
-          const node = nodes.find((n) => n.id === change.id);
-          if (node && change.position) {
-            const { x, y } = change.position;
-            // Update component position via store
-            updateComponent(change.id, {
-              position: { x, y },
-            } as Partial<ArchitectureComponent>);
-          }
-        }
-      });
-    },
-    [nodes, updateComponent]
-  );
-
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      // Handle delete edge actions
       changes.forEach((change) => {
         if (change.type === 'remove' && change.id) {
-          removeConnection(change.id);
+          removeComponent(change.id);
         }
       });
     },
-    [removeConnection]
+    [removeComponent]
+  );
+
+  const onNodeDragStop: NodeDragHandler = useCallback(
+    (_event, node) => {
+      updateComponent(node.id, {
+        position: { x: node.position.x, y: node.position.y },
+      });
+    },
+    [updateComponent]
   );
 
   const onNodeClick = useCallback(
@@ -79,22 +73,24 @@ export const ArchitectureCanvas: React.FC = () => {
 
   const onConnect: OnConnect = useCallback(
     (params) => {
-      // Construct a valid ArchitectureConnection using schema fields
+      if (!params.source || !params.target) return;
+      const sourceExists = graph.components.some((c) => c.id === params.source);
+      const targetExists = graph.components.some((c) => c.id === params.target);
+      if (!sourceExists || !targetExists) return;
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `conn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
       const newConn: ArchitectureConnection = {
-        id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id,
         source: params.source,
         target: params.target,
-        type: 'default', // adapt if needed; schema expects a type string
-        // other optional fields can be omitted
+        type: 'sync',
       };
       addConnection(newConn);
     },
-    [addConnection]
+    [addConnection, graph.components]
   );
 
   const onSelectionChange = useCallback(
     (selection: { nodes: Node[]; edges: Edge[] }) => {
-      // React Flow returns selected nodes/edges arrays
       if (selection && 'nodes' in selection && 'edges' in selection) {
         const selNodes = selection.nodes;
         const selEdges = selection.edges;
@@ -103,7 +99,6 @@ export const ArchitectureCanvas: React.FC = () => {
         } else if (selEdges.length === 1 && selNodes.length === 0) {
           selectConnection(selEdges[0].id);
         } else if (selNodes.length === 0 && selEdges.length === 0) {
-          // clear selection
           selectComponent(undefined);
           selectConnection(undefined);
         }
@@ -112,34 +107,50 @@ export const ArchitectureCanvas: React.FC = () => {
     [selectComponent, selectConnection]
   );
 
-  // Deleting nodes via UI (e.g., pressing Delete) triggers onNodesChange with type 'remove'
-  const onNodesDelete = useCallback(
-    (deleted: Node[]) => {
-      deleted.forEach((n) => {
-        removeComponent(n.id);
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      changes.forEach((change) => {
+        if (change.type === 'remove' && change.id) {
+          removeConnection(change.id);
+        }
       });
     },
-    [removeComponent]
+    [removeConnection]
   );
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onConnect={onConnect}
-        onSelectionChange={onSelectionChange}
-        onNodesDelete={onNodesDelete}
-        fitView
-        selectNodesOnDrag={false}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <ErrorBanner />
+      <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
+        <div style={{ flex: 1, height: '100%', position: 'relative' }}>
+          <button
+            onClick={() => setShowCreationDialog(true)}
+            style={{ position: 'absolute', top: 10, left: 10, zIndex: 10 }}
+          >
+            Add Component
+          </button>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onNodeDragStop={onNodeDragStop}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onConnect={onConnect}
+            onSelectionChange={onSelectionChange}
+            fitView
+            selectNodesOnDrag={false}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
+        {selectedComponentId && <ComponentInspector />}
+      </div>
+      {showCreationDialog && (
+        <ComponentCreationDialog onClose={() => setShowCreationDialog(false)} />
+      )}
     </div>
   );
 };

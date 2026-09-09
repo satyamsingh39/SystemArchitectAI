@@ -1,5 +1,5 @@
 import { ArchitectureEngine } from '@systemarchitect/architecture-engine';
-import { ArchitectureGraph } from '@systemarchitect/architecture-schema';
+import type { ArchitectureGraph } from '@systemarchitect/architecture-schema';
 
 // Initial empty ArchitectureGraph
 const initialGraph: ArchitectureGraph = {
@@ -11,10 +11,10 @@ const initialGraph: ArchitectureGraph = {
   trafficFlows: [],
   decisions: [],
   metadata: {
-    author: '',
-    created: new Date().toISOString(),
-    description: '',
-    version: '1.0.0',
+    name: 'Initial Architecture',
+    description: 'Default initial architecture graph',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 };
 

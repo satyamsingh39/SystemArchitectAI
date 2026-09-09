@@ -1,5 +1,5 @@
 // src/adapters/reactFlowAdapter.ts
-import { ArchitectureGraph, ArchitectureComponent, ArchitectureConnection } from '@systemarchitect/architecture-schema';
+import type { ArchitectureGraph, ArchitectureComponent, ArchitectureConnection } from '@systemarchitect/architecture-schema';
 import type { Node, Edge } from 'reactflow';
 
 // Convert ArchitectureComponent to a React Flow node
@@ -9,9 +9,6 @@ export function componentToNode(component: ArchitectureComponent): Node {
     type: 'default',
     data: { label: component.name, type: component.type },
     position: { x: component.position.x, y: component.position.y },
-    // Store the full component for easy access if needed
-    // but avoid any type casting
-    // data can hold any serializable value; we keep minimal info
   };
 }
 
@@ -21,7 +18,6 @@ export function connectionToEdge(connection: ArchitectureConnection): Edge {
     id: connection.id,
     source: connection.source,
     target: connection.target,
-    // Optionally add label or type information
     data: { label: connection.type },
   };
 }
