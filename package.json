@@ -6,7 +6,8 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
-    "lint": "pnpm -r run lint"
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

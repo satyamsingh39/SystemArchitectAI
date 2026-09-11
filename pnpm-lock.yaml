@@ -140,6 +140,25 @@ importers:
         specifier: ^1.4.0
         version: 1.6.1(@types/node@20.19.43)
 
+  packages/persistence:
+    dependencies:
+      '@systemarchitect/architecture-schema':
+        specifier: '*'
+        version: link:../architecture-schema
+      pg:
+        specifier: ^8.11.3
+        version: 8.23.0
+    devDependencies:
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
+      typescript:
+        specifier: ^5.2.2
+        version: 5.9.3
+      vitest:
+        specifier: ^1.4.0
+        version: 1.6.1(@types/node@20.19.43)
+
   packages/shared:
     devDependencies:
       typescript:
@@ -1765,6 +1784,11 @@ packages:
   /diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+    dev: true
+
+  /dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
     dev: true
 
   /esbuild@0.21.5:

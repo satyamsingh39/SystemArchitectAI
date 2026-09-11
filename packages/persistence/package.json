@@ -1,0 +1,23 @@
+{
+  "name": "@systemarchitect/persistence",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "@systemarchitect/architecture-schema": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vitest": "^1.4.0",
+    "dotenv": "^16.4.5"
+  }
+}
