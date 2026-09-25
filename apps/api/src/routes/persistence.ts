@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { ProjectService } from '@systemarchitect/persistence/src/services/projectService';
-import { VersionService } from '@systemarchitect/persistence/src/services/versionService';
+import { ProjectService, VersionService } from '@systemarchitect/persistence';
 import { ArchitectureGraphSchema } from '@systemarchitect/architecture-schema';
 
 /**
@@ -86,9 +85,11 @@ export async function registerPersistenceRoutes(app: FastifyInstance) {
         expectedCurrentVersionId
       );
       reply.status(201).send(result);
-    } catch (err: any) {
-      const status = err.status || (err.message?.includes('Stale') ? 409 : 400);
-      reply.status(status).send({ error: err.message || 'Invalid request' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errObj = err as { status?: number };
+      const status = errObj.status ?? (errorMessage.includes('Stale') ? 409 : 400);
+      reply.status(status).send({ error: errorMessage || 'Invalid request' });
     }
   });
 
@@ -110,9 +111,11 @@ export async function registerPersistenceRoutes(app: FastifyInstance) {
         expectedCurrentVersionId
       );
       reply.status(201).send(result);
-    } catch (err: any) {
-      const status = err.status || (err.message?.includes('Stale') ? 409 : 400);
-      reply.status(status).send({ error: err.message || 'Invalid request' });
+    } catch (err: unknown) {
+    const errObj = err as { status?: number };
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const status = errObj.status ?? (errorMessage.includes('Stale') ? 409 : 400);
+    reply.status(status).send({ error: errorMessage || 'Invalid request' });
     }
   });
 }

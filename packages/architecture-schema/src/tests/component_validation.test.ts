@@ -12,7 +12,7 @@ const validComponent = {
 
 describe("ArchitectureComponent schema validation", () => {
   it("passes for a minimal valid component", () => {
-    const result = ArchitectureComponentSchema.safeParse(validComponent as any);
+    const result = ArchitectureComponentSchema.safeParse(validComponent as unknown);
     expect(result.success).toBe(true);
   });
 
@@ -20,7 +20,7 @@ describe("ArchitectureComponent schema validation", () => {
     const invalid = {
       ...validComponent,
       capacity: { requestsPerSecond: -10 },
-    } as any;
+    } as unknown;
     const result = ArchitectureComponentSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     const errors = result.error!.errors.map((e) => e.message);
@@ -35,7 +35,7 @@ describe("ArchitectureComponent schema validation", () => {
         minInstances: 5,
         maxInstances: 3,
       },
-    } as any;
+    } as unknown;
     const result = ArchitectureComponentSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     const errors = result.error!.errors.map((e) => e.message);

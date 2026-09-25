@@ -1,17 +1,19 @@
 // src/store/architectureStore.ts
 import { create } from 'zustand';
-import { architectureEngine } from '../integrations/architecture-engine';
+import { initialGraph } from '../integrations/architecture-engine';
+import { ArchitectureEngine } from '@systemarchitect/architecture-engine';
 import type {
   ArchitectureComponent,
   ArchitectureConnection,
   ArchitectureGraph,
   SystemRequirements,
   FunctionalRequirement,
-  ArchitectureVersion,
 } from '@systemarchitect/architecture-schema';
+import type { ArchitectureProposal } from '@systemarchitect/architecture-generator';
 
 export interface ArchitectureStore {
   // Core graph state
+  engine: ArchitectureEngine;
   graph: ArchitectureGraph;
   selectedComponentId?: string;
   selectedConnectionId?: string;
@@ -24,6 +26,11 @@ export interface ArchitectureStore {
   versionList: { versionId: string; version: string; message?: string; created_at: string }[];
   persistenceError?: string;
   loading: boolean;
+
+  // Generation state
+  generationProposal?: ArchitectureProposal;
+  generationStatus: 'idle' | 'loading' | 'success' | 'error';
+  generationError?: string;
 
   // UI actions
   selectComponent: (id?: string) => void;
@@ -52,10 +59,14 @@ export interface ArchitectureStore {
   saveCurrentVersion: (message?: string) => Promise<void>;
   restoreVersion: (versionId: string, message?: string) => Promise<void>;
   refreshVersionHistory: (projectId: string) => Promise<void>;
+
+  // AI Generation
+  generateArchitecture: (projectId: string, requirements: SystemRequirements) => Promise<void>;
 }
 
 export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
-  graph: architectureEngine.getGraph(),
+  engine: new ArchitectureEngine(initialGraph),
+  graph: initialGraph,
   selectedComponentId: undefined,
   selectedConnectionId: undefined,
   error: undefined,
@@ -68,6 +79,11 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
   persistenceError: undefined,
   loading: false,
 
+  // Generation defaults
+  generationProposal: undefined,
+  generationStatus: 'idle',
+  generationError: undefined,
+
   // UI actions
   selectComponent: (id) => set({ selectedComponentId: id, selectedConnectionId: undefined, error: undefined }),
   selectConnection: (id) => set({ selectedConnectionId: id, selectedComponentId: undefined, error: undefined }),
@@ -75,7 +91,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
 
   // Architecture actions – unchanged from original
   addComponent: (component) => {
-    const result = architectureEngine.addComponent(component);
+    const result = get().engine.addComponent(component);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -83,7 +99,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   updateComponent: (componentId, updates) => {
-    const result = architectureEngine.updateComponent(componentId, updates);
+    const result = get().engine.updateComponent(componentId, updates);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -91,7 +107,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   removeComponent: (componentId) => {
-    const result = architectureEngine.removeComponent(componentId);
+    const result = get().engine.removeComponent(componentId);
     if (result.success) {
       set({ graph: result.data.graph, selectedComponentId: undefined, error: undefined });
     } else {
@@ -100,7 +116,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
   },
 
   addConnection: (connection) => {
-    const result = architectureEngine.addConnection(connection);
+    const result = get().engine.addConnection(connection);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -108,7 +124,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   updateConnection: (connectionId, updates) => {
-    const result = architectureEngine.updateConnection(connectionId, updates);
+    const result = get().engine.updateConnection(connectionId, updates);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -116,7 +132,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   removeConnection: (connectionId) => {
-    const result = architectureEngine.removeConnection(connectionId);
+    const result = get().engine.removeConnection(connectionId);
     if (result.success) {
       set({ graph: result.data.graph, selectedConnectionId: undefined, error: undefined });
     } else {
@@ -125,7 +141,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
   },
 
   updateRequirements: (requirements) => {
-    const result = architectureEngine.updateRequirements(requirements);
+    const result = get().engine.updateRequirements(requirements);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -133,7 +149,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   addFunctionalRequirement: (requirement) => {
-    const result = architectureEngine.addFunctionalRequirement(requirement);
+    const result = get().engine.addFunctionalRequirement(requirement);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -141,7 +157,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   removeFunctionalRequirement: (id) => {
-    const result = architectureEngine.removeFunctionalRequirement(id);
+    const result = get().engine.removeFunctionalRequirement(id);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -149,7 +165,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   addConstraint: (constraint) => {
-    const result = architectureEngine.addConstraint(constraint);
+    const result = get().engine.addConstraint(constraint);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -157,7 +173,7 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     }
   },
   removeConstraint: (index) => {
-    const result = architectureEngine.removeConstraint(index);
+    const result = get().engine.removeConstraint(index);
     if (result.success) {
       set({ graph: result.data.graph, error: undefined });
     } else {
@@ -181,9 +197,9 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
       await get().refreshVersionHistory(projectId);
       const projRes = await fetch('/api/projects');
       const projects = await projRes.json();
-      set({ projectList: projects.map((p: any) => ({ projectId: p.id, name: p.name })) });
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+      set({ projectList: projects.map((p: { id: string; name: string }) => ({ projectId: p.id, name: p.name })) });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
     }
@@ -201,9 +217,9 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
       await get().refreshVersionHistory(projectId);
       const listRes = await fetch('/api/projects');
       const projects = await listRes.json();
-      set({ projectList: projects.map((p: any) => ({ projectId: p.id, name: p.name })) });
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+      set({ projectList: projects.map((p: { id: string; name: string }) => ({ projectId: p.id, name: p.name })) });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
     }
@@ -220,11 +236,11 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
       const res = await fetch(`/api/projects/${currentProjectId}/versions/${versionId}`);
       if (!res.ok) throw new Error('Version not found');
       const { graph } = await res.json();
-      // Reinitialize the ArchitectureEngine with the persisted graph (validated server‑side)
-      reinitializeEngine(graph);
-      set({ graph: architectureEngine.getGraph(), currentVersionId: versionId });
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+      // Initialize a new ArchitectureEngine with the persisted graph
+      const newEngine = new ArchitectureEngine(graph);
+      set({ engine: newEngine, graph: newEngine.getGraph(), currentVersionId: versionId });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
     }
@@ -248,11 +264,11 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
         throw new Error(err.error || 'Version conflict');
       }
       if (!res.ok) throw new Error('Failed to save version');
-      const { versionId, newVersion } = await res.json();
+      const { versionId } = await res.json();
       set({ currentVersionId: versionId });
       await get().refreshVersionHistory(get().currentProjectId!);
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
     }
@@ -278,8 +294,8 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
       if (!res.ok) throw new Error('Failed to restore version');
       const { versionId: newId } = await res.json();
       await get().loadVersion(newId);
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
     }
@@ -291,11 +307,37 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
       const res = await fetch(`/api/projects/${projectId}/versions`);
       if (!res.ok) throw new Error('Failed to list versions');
       const versions = await res.json();
-      set({ versionList: versions.map((v: any) => ({ versionId: v.id, version: v.version, message: v.message, created_at: v.created_at })) });
-    } catch (e: any) {
-      set({ persistenceError: e.message });
+      set({ versionList: versions.map((v: { id: string; version: string; message?: string; created_at: string }) => ({ versionId: v.id, version: v.version, message: v.message, created_at: v.created_at })) });
+    } catch (e: unknown) {
+      if (e instanceof Error) { set({ persistenceError: e.message }); } else { set({ persistenceError: String(e) }); }
     } finally {
       set({ loading: false });
+    }
+  },
+
+  // AI Generation implementation
+  generateArchitecture: async (projectId, requirements) => {
+    set({ generationStatus: 'loading', generationError: undefined, generationProposal: undefined });
+    try {
+      const res = await fetch(`/api/projects/${projectId}/architecture/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirements }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Generation failed');
+      }
+      
+      set({ generationStatus: 'success', generationProposal: data.proposal });
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        set({ generationStatus: 'error', generationError: e.message });
+      } else {
+        set({ generationStatus: 'error', generationError: String(e) });
+      }
     }
   },
 }));

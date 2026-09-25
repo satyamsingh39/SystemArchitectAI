@@ -10,7 +10,7 @@ const baseComponentA: ArchitectureComponent = {
   name: "A",
   position: { x: 0, y: 0 },
   properties: {},
-} as any;
+};
 
 const baseComponentB: ArchitectureComponent = {
   id: "compB",
@@ -18,14 +18,14 @@ const baseComponentB: ArchitectureComponent = {
   name: "B",
   position: { x: 10, y: 10 },
   properties: {},
-} as any;
+};
 
 const baseConnection: ArchitectureConnection = {
   id: "conn1",
   source: "compA",
   target: "compB",
   type: "sync",
-} as any;
+};
 
 const emptyGraph: ArchitectureGraph = {
   id: "g1",
@@ -36,7 +36,7 @@ const emptyGraph: ArchitectureGraph = {
   trafficFlows: [],
   decisions: [],
   metadata: { name: "test" },
-} as any;
+};
 
 describe("Mutation functions", () => {
   it("addComponent adds component and keeps graph valid", () => {

@@ -9,7 +9,7 @@ describe("SystemRequirements schema validation", () => {
         { id: "fr1", description: "Must support login", priority: "must" },
         { id: "fr2", description: "Should have dark mode", priority: "should" },
       ],
-    } as any;
+    } as unknown;
     const result = SystemRequirementsSchema.safeParse(req);
     expect(result.success).toBe(true);
   });
@@ -17,7 +17,7 @@ describe("SystemRequirements schema validation", () => {
   it("fails on invalid priority value", () => {
     const req = {
       functional: [{ id: "fr1", description: "Invalid", priority: "invalid" }],
-    } as any;
+    } as unknown;
     const result = SystemRequirementsSchema.safeParse(req);
     expect(result.success).toBe(false);
   });

@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { Pool } from "pg";
 import { SYSTEM_NAME, HealthCheckResponse } from "@systemarchitect/shared";
 import { registerPersistenceRoutes } from "./routes/persistence";
+import { registerArchitectureGenerationRoutes } from "./routes/architectureGeneration";
 
 const fastify = Fastify({ logger: true });
 
@@ -21,8 +22,9 @@ fastify.get("/health", async (request, reply): Promise<HealthCheckResponse> => {
   }
 });
 
-+// Register API routes for persistence
-+registerPersistenceRoutes(fastify);
+// Register API routes for persistence
+registerPersistenceRoutes(fastify);
+registerArchitectureGenerationRoutes(fastify);
 
 const start = async () => {
   try {

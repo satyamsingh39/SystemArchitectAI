@@ -2,7 +2,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { graphToFlow, componentToNode, connectionToEdge } from '../adapters/reactFlowAdapter';
 import { useArchitectureStore } from '../store/architectureStore';
-import { architectureEngine } from '../integrations/architecture-engine';
+import { ArchitectureEngine } from '@systemarchitect/architecture-engine';
 import type { ArchitectureComponent, ArchitectureConnection, ArchitectureGraph, SystemRequirements } from '@systemarchitect/architecture-schema';
 
 function createTestGraph(): ArchitectureGraph {
@@ -26,8 +26,8 @@ describe('React Flow Adapter & Zustand Store Integration', () => {
   beforeEach(() => {
     // Reset the engine with a clean graph before each test
     const cleanGraph = createTestGraph();
-    (architectureEngine as unknown as { graph: ArchitectureGraph }).graph = cleanGraph;
     useArchitectureStore.setState({
+      engine: new ArchitectureEngine(cleanGraph),
       graph: cleanGraph,
       selectedComponentId: undefined,
       selectedConnectionId: undefined,

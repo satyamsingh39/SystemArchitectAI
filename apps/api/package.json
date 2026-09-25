@@ -10,11 +10,13 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@systemarchitect/architecture-generator": "workspace:^",
+    "@systemarchitect/architecture-schema": "workspace:*",
+    "@systemarchitect/persistence": "workspace:*",
     "@systemarchitect/shared": "workspace:*",
     "fastify": "^4.24.0",
     "pg": "^8.11.3",
-    "zod": "^3.22.4",
-    "@systemarchitect/architecture-schema": "workspace:*"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

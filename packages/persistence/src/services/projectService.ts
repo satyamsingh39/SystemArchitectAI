@@ -1,6 +1,6 @@
 import { dbPool } from '../db/client';
 import type { PoolClient } from 'pg';
-import { ProjectRepo } from '../repositories/projectRepo';
+import { ProjectRepo, type Project } from '../repositories/projectRepo';
 import { VersionRepo } from '../repositories/versionRepo';
 import { ArchitectureGraphSchema } from '@systemarchitect/architecture-schema';
 
@@ -27,8 +27,10 @@ export class ProjectService {
         constraints: [],
         trafficFlows: [],
         decisions: [],
-        metadata: { createdBy: 'system', createdAt: new Date().toISOString() },
-        // requirements omitted – optional
+        metadata: {
+          name,
+          createdAt: new Date().toISOString(),
+        },
       });
 
       // 3️⃣ Insert version row (parent_version_id = NULL)
@@ -55,7 +57,7 @@ export class ProjectService {
   }
 
   /** List all projects (metadata only). */
-  static async listProjects(): Promise<any[]> {
+  static async listProjects(): Promise<Project[]> {
     const client = await dbPool.connect();
     try {
       return await ProjectRepo.list(client);
@@ -65,7 +67,7 @@ export class ProjectService {
   }
 
   /** Get a single project by id, including current_version_id. */
-  static async getProject(projectId: string): Promise<any | null> {
+  static async getProject(projectId: string): Promise<Project | null> {
     const client = await dbPool.connect();
     try {
       return await ProjectRepo.findById(projectId, client);

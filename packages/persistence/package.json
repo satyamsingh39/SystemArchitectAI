@@ -12,12 +12,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "pg": "^8.11.3",
-    "@systemarchitect/architecture-schema": "*"
+    "@systemarchitect/architecture-schema": "*",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
+    "@types/pg": "^8.10.9",
+    "dotenv": "^16.4.5",
     "typescript": "^5.2.2",
-    "vitest": "^1.4.0",
-    "dotenv": "^16.4.5"
+    "vitest": "^1.4.0"
   }
 }

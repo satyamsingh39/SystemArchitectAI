@@ -12,15 +12,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@systemarchitect/architecture-engine": "workspace:*",
+    "@systemarchitect/architecture-generator": "workspace:^",
+    "@systemarchitect/architecture-schema": "workspace:*",
+    "@systemarchitect/evaluation-engine": "workspace:*",
+    "@systemarchitect/shared": "workspace:*",
+    "@tanstack/react-query": "^5.17.19",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "reactflow": "^11.10.0",
-    "zustand": "^4.5.0",
-    "@tanstack/react-query": "^5.17.19",
-    "@systemarchitect/shared": "workspace:*",
-    "@systemarchitect/architecture-schema": "workspace:*",
-    "@systemarchitect/architecture-engine": "workspace:*",
-    "@systemarchitect/evaluation-engine": "workspace:*"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

@@ -8,7 +8,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ProjectService } from '../services/projectService';
 import { VersionService } from '../services/versionService';
 import { dbPool } from '../db/client';
-import { ArchitectureGraphSchema } from '@systemarchitect/architecture-schema';
+import { ArchitectureGraphSchema, ArchitectureGraph } from '@systemarchitect/architecture-schema';
 
 function uniqueProjectName() {
   return `test_proj_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -21,6 +21,7 @@ async function deleteProjectByName(name: string) {
     const res = await client.query('SELECT id FROM projects WHERE name = $1', [name]);
     if (res.rowCount) {
       const projectId = res.rows[0].id;
+      await client.query('UPDATE projects SET current_version_id = NULL WHERE id = $1', [projectId]);
       await client.query('DELETE FROM architecture_versions WHERE project_id = $1', [projectId]);
       await client.query('DELETE FROM projects WHERE id = $1', [projectId]);
     }
@@ -63,12 +64,20 @@ describe('Persistence integration (real PostgreSQL)', async () => {
     const baseGraph = ArchitectureGraphSchema.parse({
       id: projectId,
       version: '2',
-      components: [{ id: 'c1', type: 'Component', name: 'Comp 1', metadata: {} }],
+      components: [
+        {
+          id: 'c1',
+          type: 'service',
+          name: 'Comp 1',
+          properties: {},
+          position: { x: 0, y: 0 },
+        },
+      ],
       connections: [],
       constraints: [],
       trafficFlows: [],
       decisions: [],
-      metadata: { createdBy: 'test', createdAt: new Date().toISOString() }
+      metadata: { name: projectName, createdAt: new Date().toISOString() },
     });
     const { versionId: v2Id, newVersion } = await VersionService.createVersion(
       projectId,
@@ -78,7 +87,7 @@ describe('Persistence integration (real PostgreSQL)', async () => {
     );
     expect(newVersion).toBe('2');
     const v1 = await VersionService.getVersionById(projectId, versionIdV1);
-    expect(v1?.components).toHaveLength(0);
+    expect(v1?.graph.components).toHaveLength(0);
     const projAfter = await ProjectService.getProject(projectId);
     expect(projAfter?.current_version_id).toBe(v2Id);
     const v2CurrentId = projAfter!.current_version_id as string;
@@ -97,16 +106,25 @@ describe('Persistence integration (real PostgreSQL)', async () => {
     const proj = await ProjectService.getProject(projectId);
     const currentId = proj!.current_version_id as string;
     const currentVersion = await VersionService.getVersionById(projectId, currentId);
-    const originalComponents = currentVersion!.components;
+    const originalComponents = currentVersion!.graph.components;
     const newGraph = ArchitectureGraphSchema.parse({
       id: projectId,
       version: '99',
-      components: [...originalComponents, { id: 'c2', type: 'Component', name: 'Comp 2', metadata: {} }],
+      components: [
+        ...originalComponents,
+        {
+          id: 'c2',
+          type: 'service',
+          name: 'Comp 2',
+          properties: {},
+          position: { x: 10, y: 10 },
+        },
+      ],
       connections: [],
       constraints: [],
       trafficFlows: [],
       decisions: [],
-      metadata: { createdBy: 'test', createdAt: new Date().toISOString() }
+      metadata: { name: projectName, createdAt: new Date().toISOString() },
     });
     const { versionId: vNextId } = await VersionService.createVersion(
       projectId,
@@ -115,9 +133,9 @@ describe('Persistence integration (real PostgreSQL)', async () => {
       currentId
     );
     const prevVersion = await VersionService.getVersionById(projectId, currentId);
-    expect(prevVersion?.components).toEqual(originalComponents);
+    expect(prevVersion?.graph.components).toEqual(originalComponents);
     const nextVersion = await VersionService.getVersionById(projectId, vNextId);
-    expect(nextVersion?.components).toHaveLength(originalComponents.length + 1);
+    expect(nextVersion?.graph.components).toHaveLength(originalComponents.length + 1);
   });
 
   it('OPTIMISTIC CONCURRENCY: stale version rejection', async () => {
@@ -132,7 +150,7 @@ describe('Persistence integration (real PostgreSQL)', async () => {
       constraints: [],
       trafficFlows: [],
       decisions: [],
-      metadata: { createdBy: 'test', createdAt: new Date().toISOString() }
+      metadata: { name: projectName, createdAt: new Date().toISOString() },
     });
     await expect(
       VersionService.createVersion(projectId, dummyGraph, 'stale attempt', staleId)
@@ -152,10 +170,10 @@ describe('Persistence integration (real PostgreSQL)', async () => {
       'Restore to v1',
       currentId
     );
-    // After creating v2 and v3 earlier, next version should be "4"
-    expect(newVersion).toBe('4');
+    // After creating v2, v3, and v4 earlier, next version should be "5"
+    expect(newVersion).toBe('5');
     const restored = await VersionService.getVersionById(projectId, restoredId);
-    expect(restored?.graph).toEqual(v1?.graph);
+    expect(restored?.graph).toEqual({ ...v1?.graph, version: '5' });
     const afterRestore = await ProjectService.getProject(projectId);
     expect(afterRestore!.current_version_id).toBe(restoredId);
     expect(restored?.parent_version_id).toBe(currentId);
@@ -164,7 +182,7 @@ describe('Persistence integration (real PostgreSQL)', async () => {
   it('GRAPH VALIDATION: invalid graph is rejected', async () => {
     const proj = await ProjectService.getProject(projectId);
     const currentId = proj!.current_version_id as string;
-    const invalidGraph: any = {
+    const invalidGraph = {
       id: projectId,
       version: '99',
       components: [{ id: 'cX', type: 'Component', name: 123 }],
@@ -175,14 +193,14 @@ describe('Persistence integration (real PostgreSQL)', async () => {
       metadata: { createdBy: 'test', createdAt: new Date().toISOString() }
     };
     await expect(
-      VersionService.createVersion(projectId, invalidGraph, 'invalid', currentId)
+      VersionService.createVersion(projectId, invalidGraph as unknown as ArchitectureGraph, 'invalid', currentId)
     ).rejects.toMatchObject({ status: 400 });
   });
 
   it('TRANSACTIONAL BEHAVIOR: failed version creation rolls back current pointer', async () => {
     const proj = await ProjectService.getProject(projectId);
     const currentId = proj!.current_version_id as string;
-    const badGraph: any = {
+    const badGraph = {
       id: projectId,
       version: '99',
       components: [{ id: 'bad', type: 'Component', name: 123 }],
@@ -193,7 +211,7 @@ describe('Persistence integration (real PostgreSQL)', async () => {
       metadata: { createdBy: 'test', createdAt: new Date().toISOString() }
     };
     await expect(
-      VersionService.createVersion(projectId, badGraph, 'bad', currentId)
+      VersionService.createVersion(projectId, badGraph as unknown as ArchitectureGraph, 'bad', currentId)
     ).rejects.toMatchObject({ status: 400 });
     const after = await ProjectService.getProject(projectId);
     expect(after!.current_version_id).toBe(currentId);

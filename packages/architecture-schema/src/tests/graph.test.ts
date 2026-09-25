@@ -1,9 +1,9 @@
 // src/tests/graph.test.ts
 import { describe, it, expect } from "vitest";
-import { ArchitectureGraphSchema } from "../models";
+import { ArchitectureGraph, ArchitectureGraphSchema, ArchitectureComponent, ArchitectureConnection } from "../models";
 import { validateArchitectureGraph } from "../validation/graph-validation";
 
-const minimalComponent = {
+const minimalComponent: ArchitectureComponent = {
   id: "comp1",
   type: "service",
   name: "Service A",
@@ -11,18 +11,18 @@ const minimalComponent = {
   properties: {},
 };
 
-const minimalConnection = {
+const minimalConnection: ArchitectureConnection = {
   id: "conn1",
   source: "comp1",
   target: "comp1",
   type: "sync",
 };
 
-const validGraph = {
+const validGraph: ArchitectureGraph = {
   id: "graph1",
   version: "1.0",
-  components: [minimalComponent as any],
-  connections: [minimalConnection as any],
+  components: [minimalComponent],
+  connections: [minimalConnection],
   constraints: [],
   trafficFlows: [],
   decisions: [],
@@ -31,9 +31,9 @@ const validGraph = {
 
 describe("ArchitectureGraph validation", () => {
   it("passes for a minimal valid graph", () => {
-    const schemaResult = ArchitectureGraphSchema.safeParse(validGraph as any);
+    const schemaResult = ArchitectureGraphSchema.safeParse(validGraph);
     expect(schemaResult.success).toBe(true);
-    const validation = validateArchitectureGraph(validGraph as any);
+    const validation = validateArchitectureGraph(validGraph);
     expect(validation.valid).toBe(true);
     expect(validation.errors).toHaveLength(0);
   });

@@ -2,5 +2,6 @@ packages:
   - 'apps/*'
   - 'packages/*'
   - 'packages/architecture-engine'
+  - 'packages/architecture-generator'
 allowBuilds:
   esbuild: set this to true or false

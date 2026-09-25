@@ -5,6 +5,16 @@ import type { ArchitectureGraph } from '@systemarchitect/architecture-schema';
 /**
  * ArchitectureVersion repository – immutable snapshots.
  */
+export interface ArchitectureVersion {
+  id: string;
+  project_id: string;
+  version: string;
+  parent_version_id: string | null;
+  message: string | null;
+  graph: ArchitectureGraph;
+  created_at: Date;
+}
+
 export class VersionRepo {
   /** Insert a new immutable version. Caller must ensure transaction and version string uniqueness. */
   static async create(
@@ -25,7 +35,7 @@ export class VersionRepo {
   }
 
   /** Find a version by its UUID. */
-  static async findById(id: string, client?: PoolClient) {
+  static async findById(id: string, client?: PoolClient): Promise<ArchitectureVersion | null> {
     const pg = client ?? (await dbPool.connect());
     const result = await pg.query(
       `SELECT * FROM architecture_versions WHERE id = $1`,
@@ -36,7 +46,7 @@ export class VersionRepo {
   }
 
   /** List versions for a project with deterministic ordering. */
-  static async listByProject(projectId: string, client?: PoolClient) {
+  static async listByProject(projectId: string, client?: PoolClient): Promise<Omit<ArchitectureVersion, 'graph'>[]> {
     const pg = client ?? (await dbPool.connect());
     const result = await pg.query(
       `SELECT id, version, parent_version_id, message, created_at
@@ -50,7 +60,7 @@ export class VersionRepo {
   }
 
   /** Get the current version row via project.current_version_id */
-  static async getCurrentByProject(projectId: string, client?: PoolClient) {
+  static async getCurrentByProject(projectId: string, client?: PoolClient): Promise<ArchitectureVersion | null> {
     const pg = client ?? (await dbPool.connect());
     const result = await pg.query(
       `SELECT av.* FROM architecture_versions av

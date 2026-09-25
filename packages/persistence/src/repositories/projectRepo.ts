@@ -5,6 +5,14 @@ import type { ArchitectureGraph } from '@systemarchitect/architecture-schema';
 /**
  * Project repository – low level DB access.
  */
+export interface Project {
+  id: string;
+  name: string;
+  current_version_id: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export class ProjectRepo {
   /** Insert a new project row (current_version_id = NULL). */
   static async create(name: string, client?: PoolClient): Promise<string> {
@@ -20,7 +28,7 @@ export class ProjectRepo {
   }
 
   /** Find a project by id. */
-  static async findById(id: string, client?: PoolClient) {
+  static async findById(id: string, client?: PoolClient): Promise<Project | null> {
     const pg = client ?? (await dbPool.connect());
     const result = await pg.query(
       `SELECT id, name, current_version_id, created_at, updated_at FROM projects WHERE id = $1`,
@@ -31,7 +39,7 @@ export class ProjectRepo {
   }
 
   /** List all projects (metadata only). */
-  static async list(client?: PoolClient) {
+  static async list(client?: PoolClient): Promise<Project[]> {
     const pg = client ?? (await dbPool.connect());
     const result = await pg.query(
       `SELECT id, name, current_version_id, created_at, updated_at FROM projects ORDER BY updated_at DESC`

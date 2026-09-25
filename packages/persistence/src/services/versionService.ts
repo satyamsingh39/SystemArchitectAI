@@ -1,7 +1,7 @@
 import { dbPool } from '../db/client';
 import type { PoolClient } from 'pg';
 import { ProjectRepo } from '../repositories/projectRepo';
-import { VersionRepo } from '../repositories/versionRepo';
+import { VersionRepo, type ArchitectureVersion } from '../repositories/versionRepo';
 import { ArchitectureGraphSchema } from '@systemarchitect/architecture-schema';
 import type { ArchitectureGraph } from '@systemarchitect/architecture-schema';
 
@@ -55,7 +55,7 @@ export class VersionService {
       const nextVersion = (lastVersion + 1).toString();
 
       // 5️⃣ Override graph.version with server‑generated version
-      (validatedGraph as any).version = nextVersion;
+      validatedGraph.version = nextVersion;
 
       // 6️⃣ Insert immutable snapshot (parent points to previous current version)
       const versionId = await VersionRepo.create(
@@ -74,19 +74,15 @@ export class VersionService {
       return { versionId, newVersion: nextVersion };
     } catch (err) {
       await client.query('ROLLBACK');
-      // Re‑throw with a more expressive error type for the API layer
       if ((err as Error).message === 'StaleVersion') {
-        const e: any = new Error('Stale version conflict');
-        e.status = 409;
+        const e = Object.assign(new Error('Stale version conflict'), { status: 409 });
         throw e;
       }
       if ((err as Error).message === 'ProjectNotFound') {
-        const e: any = new Error('Project not found');
-        e.status = 404;
+        const e = Object.assign(new Error('Project not found'), { status: 404 });
         throw e;
       }
-      const e: any = new Error('Invalid request');
-      e.status = 400;
+      const e = Object.assign(new Error('Invalid request'), { status: 400 });
       throw e;
     } finally {
       client.release();
@@ -124,8 +120,7 @@ export class VersionService {
       // Load the target version graph
       const target = await VersionRepo.findById(targetVersionId, client);
       if (!target) {
-        const e: any = new Error('Version not found');
-        e.status = 404;
+        const e = Object.assign(new Error('Version not found'), { status: 404 });
         throw e;
       }
 
@@ -141,7 +136,7 @@ export class VersionService {
       const nextVersion = (lastVersion + 1).toString();
 
       // Override version field
-      (parsedGraph as any).version = nextVersion;
+      parsedGraph.version = nextVersion;
 
       // Insert a new immutable version – parent points to the version that was current at restore time
       const newVersionId = await VersionRepo.create(
@@ -161,17 +156,14 @@ export class VersionService {
     } catch (err) {
       await client.query('ROLLBACK');
       if ((err as Error).message === 'StaleVersion') {
-        const e: any = new Error('Stale version conflict');
-        e.status = 409;
+        const e = Object.assign(new Error('Stale version conflict'), { status: 409 });
         throw e;
       }
       if ((err as Error).message === 'ProjectNotFound') {
-        const e: any = new Error('Project not found');
-        e.status = 404;
+        const e = Object.assign(new Error('Project not found'), { status: 404 });
         throw e;
       }
-      const e: any = new Error('Invalid request');
-      e.status = 400;
+      const e = Object.assign(new Error('Invalid request'), { status: 400 });
       throw e;
     } finally {
       client.release();
@@ -179,7 +171,7 @@ export class VersionService {
   }
 
   /** List all versions for a project (metadata only, deterministic order). */
-  static async listVersions(projectId: string): Promise<any[]> {
+  static async listVersions(projectId: string): Promise<Omit<ArchitectureVersion, 'graph'>[]> {
     const client = await dbPool.connect();
     try {
       return await VersionRepo.listByProject(projectId, client);
@@ -189,7 +181,7 @@ export class VersionService {
   }
 
   /** Get a specific version row (including full graph). */
-  static async getVersionById(projectId: string, versionId: string): Promise<any | null> {
+  static async getVersionById(projectId: string, versionId: string): Promise<ArchitectureVersion | null> {
     const client = await dbPool.connect();
     try {
       const version = await VersionRepo.findById(versionId, client);
