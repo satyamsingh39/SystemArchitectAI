@@ -1,0 +1,21 @@
+{
+  "name": "@systemarchitect/agent-tools",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests\""
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "zod": "^3.22.4",
+    "@systemarchitect/architecture-engine": "*",
+    "@systemarchitect/architecture-schema": "*",
+    "@systemarchitect/persistence": "*"
+  }
+}
